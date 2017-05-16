@@ -1,2 +1,2 @@
 # Masticore.Entity
-Utility classes for Azure Storage
+Utility classes for Entity Framework
