@@ -1,9 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Masticore.Entity;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Masticore.Entity.Tests
@@ -15,11 +12,11 @@ namespace Masticore.Entity.Tests
         public async Task CreateAsyncTest()
         {
             // Arrange
-            EntityMergeCrud<TestModel, TestDbContext> crud = await CreateCrud();
-            TestModel model = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
+            var crud = await CreateCrud();
+            var model = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
 
             // Act
-            TestModel createdModel = await crud.CreateAsync(model);
+            var createdModel = await crud.CreateAsync(model);
 
             // Assert
             Assert.AreEqual(createdModel.MergedString, model.MergedString);
@@ -30,13 +27,13 @@ namespace Masticore.Entity.Tests
         public async Task ReadAllAsyncTest()
         {
             // Arrange
-            EntityMergeCrud<TestModel, TestDbContext> crud = await CreateCrud();
+            var crud = await CreateCrud();
             await crud.CreateAsync(new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" });
             await crud.CreateAsync(new TestModel { MergedString = "Evee Ralston", NotMergedString = "This Should Be Null" });
             await crud.CreateAsync(new TestModel { MergedString = "Lilly Ralston", NotMergedString = "This Should Be Null" });
 
             // Act
-            IEnumerable<TestModel> models = await crud.ReadAllAsync();
+            var models = await crud.ReadAllAsync();
 
             // Assert
             Assert.IsNotNull(models);
@@ -47,12 +44,12 @@ namespace Masticore.Entity.Tests
         public async Task ReadAsyncTest()
         {
             // Arrange
-            EntityMergeCrud<TestModel, TestDbContext> crud = await CreateCrud();
-            TestModel model = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
-            TestModel createdModel = await crud.CreateAsync(model);
+            var crud = await CreateCrud();
+            var model = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
+            var createdModel = await crud.CreateAsync(model);
 
             // Act
-            TestModel readModel = await crud.ReadAsync(createdModel.Id);
+            var readModel = await crud.ReadAsync(createdModel.Id);
 
             // Assert
             Assert.IsNotNull(createdModel);
@@ -63,13 +60,13 @@ namespace Masticore.Entity.Tests
         public async Task UpdateAsyncTest()
         {
             // Arrange
-            EntityMergeCrud<TestModel, TestDbContext> crud = await CreateCrud();
-            TestModel originalModel = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
-            TestModel createdModel = await crud.CreateAsync(originalModel);
+            var crud = await CreateCrud();
+            var originalModel = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
+            var createdModel = await crud.CreateAsync(originalModel);
             createdModel.MergedString = "Evee Ralston";
 
             // Act
-            TestModel updatedModel = await crud.UpdateAsync(createdModel);
+            var updatedModel = await crud.UpdateAsync(createdModel);
 
             // Assert
             Assert.IsNotNull(createdModel);
@@ -82,30 +79,39 @@ namespace Masticore.Entity.Tests
         public async Task DeleteAsyncTest()
         {
             // Arrange
-            EntityMergeCrud<TestModel, TestDbContext> crud = await CreateCrud();
-            TestModel originalModel = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
-            TestModel createdModel = await crud.CreateAsync(originalModel);
+            var crud = await CreateCrud();
+            var originalModel = new TestModel { MergedString = "Erik Ralston", NotMergedString = "This Should Be Null" };
+            var createdModel = await crud.CreateAsync(originalModel);
 
             // Act
             await crud.DeleteAsync(createdModel.Id);
 
             // Assert
-            TestModel readModel = await crud.ReadAsync(createdModel.Id);
+            var readModel = await crud.ReadAsync(createdModel.Id);
             Assert.IsNull(readModel);
         }
 
-        #region Supporting Methods
-
         private static async Task<EntityMergeCrud<TestModel, TestDbContext>> CreateCrud()
         {
-            EntityMergeCrud<TestModel, TestDbContext> crud = new EntityMergeCrud<TestModel, TestDbContext>();
-            var context = new TestDbContext();
+            var provider = new TestDbContextProvider();
+            var context = provider.GetContext();
             context.Models.RemoveRange(context.Models);
+            var crud = new TestCrud(provider);
             await context.SaveChangesAsync();
-            crud.SetContext(context);
             return crud;
         }
 
-        #endregion
+        private class TestCrud : EntityMergeCrud<TestModel, TestDbContext>
+        {
+            public TestCrud(TestDbContextProvider provider) : base(provider, false) {  }
+        }
+
+        private class TestDbContextProvider : DbContextProvider<TestDbContext>
+        {
+            protected override TestDbContext CreateContext()
+            {
+                return new TestDbContext();
+            }
+        }
     }
 }

@@ -1,9 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Masticore.Entity;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Masticore.Entity.Tests
@@ -20,10 +16,10 @@ namespace Masticore.Entity.Tests
             CreateContextAndCrud(out context, out crud);
 
             // Act
-            TestSingletonModel model = new TestSingletonModel { MergedString = "Just One Of These", NotMergedString = "Not Persisted" };
-            TestSingletonModel createdModel = await crud.CreateOrUpdateAsync(model);
+            var model = new TestSingletonModel { MergedString = "Just One Of These", NotMergedString = "Not Persisted" };
+            var createdModel = await crud.CreateOrUpdateAsync(model);
             createdModel.MergedString = "Only One";
-            TestSingletonModel updatedModel = await crud.CreateOrUpdateAsync(model);
+            var updatedModel = await crud.CreateOrUpdateAsync(model);
 
             // Assert
             Assert.IsNotNull(createdModel);
@@ -40,14 +36,14 @@ namespace Masticore.Entity.Tests
             TestDbContext context;
             EntityMergeSingletonCrud<TestSingletonModel, TestDbContext> crud;
             CreateContextAndCrud(out context, out crud);
-            TestSingletonModel model = new TestSingletonModel { MergedString = "Just One Of These", NotMergedString = "Not Persisted" };
-            TestSingletonModel createdModel = await crud.CreateOrUpdateAsync(model);
+            var model = new TestSingletonModel { MergedString = "Just One Of These", NotMergedString = "Not Persisted" };
+            var createdModel = await crud.CreateOrUpdateAsync(model);
 
             // Act
             await crud.DeleteAsync();
 
             // Assert
-            TestSingletonModel readModel = await crud.ReadAsync();
+            var readModel = await crud.ReadAsync();
             Assert.IsNull(readModel);
             Assert.AreEqual(context.SingletonModel.Count(), 0);
         }
@@ -59,11 +55,11 @@ namespace Masticore.Entity.Tests
             TestDbContext context;
             EntityMergeSingletonCrud<TestSingletonModel, TestDbContext> crud;
             CreateContextAndCrud(out context, out crud);
-            TestSingletonModel model = new TestSingletonModel { MergedString = "Just One Of These", NotMergedString = "Not Persisted" };
-            TestSingletonModel createdModel = await crud.CreateOrUpdateAsync(model);
+            var model = new TestSingletonModel { MergedString = "Just One Of These", NotMergedString = "Not Persisted" };
+            var createdModel = await crud.CreateOrUpdateAsync(model);
 
             // Act
-            TestSingletonModel readModel = await crud.ReadAsync();
+            var readModel = await crud.ReadAsync();
 
             // Assert
             Assert.IsNotNull(readModel);
@@ -72,17 +68,19 @@ namespace Masticore.Entity.Tests
             Assert.AreEqual(context.SingletonModel.Count(), 1);
         }
 
-        #region Supporting Methods
-
         private static void CreateContextAndCrud(out TestDbContext context, out EntityMergeSingletonCrud<TestSingletonModel, TestDbContext> crud)
         {
             context = new TestDbContext();
-            crud = new EntityMergeSingletonCrud<TestSingletonModel, TestDbContext>();
+            crud = new TestEntityMergeSingleton(new TrivialDbContextProvider<TestDbContext>(context));
             context.SingletonModel.RemoveRange(context.SingletonModel);
             context.SaveChanges();
-            crud.DbContext = context;
         }
 
-        #endregion
+        class TestEntityMergeSingleton : EntityMergeSingletonCrud<TestSingletonModel, TestDbContext>
+        {
+            public TestEntityMergeSingleton(IDbContextProvider<TestDbContext> provider) : base(provider)
+            {
+            }
+        }
     }
 }

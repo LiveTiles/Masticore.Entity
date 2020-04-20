@@ -1,5 +1,4 @@
-﻿using System;
-using System.Data.Entity;
+﻿using System.Data.Entity;
 using System.Threading.Tasks;
 
 namespace Masticore.Entity
@@ -10,28 +9,26 @@ namespace Masticore.Entity
     /// </summary>
     /// <typeparam name="ModelType"></typeparam>
     /// <typeparam name="DbContextType"></typeparam>
-    public class EntityMergeSingletonCrud<ModelType, DbContextType> : ISingletonCrud<ModelType>
+    public abstract class EntityMergeSingletonCrud<ModelType, DbContextType> : ISingletonCrud<ModelType>
         where ModelType : class, IIdentifiable<int>, new()
         where DbContextType : DbContext
     {
+        private readonly IDbContextProvider<DbContextType> _provider;
+
+        protected EntityMergeSingletonCrud(IDbContextProvider<DbContextType> provider)
+        {
+            _provider = provider;
+        }
+
         /// <summary>
         /// Gets or sets the DbContext instance for this object
         /// </summary>
-        public DbContextType DbContext { get; set; }
-
-        DbSet<ModelType> _dbSet;
+        protected DbContextType DbContext => _provider.GetContext();
 
         /// <summary>
         /// Gets the DbSet underlying this singleton
         /// </summary>
-        protected virtual DbSet<ModelType> DbSet
-        {
-            get
-            {
-                _dbSet = _dbSet ?? DbContext.Set<ModelType>();
-                return _dbSet;
-            }
-        }
+        protected DbSet<ModelType> DbSet => DbContext.Set<ModelType>();
 
         /// <summary>
         /// Gets or sets the flag indicating if Create, Update, and Delete automatically calls SaveChanges on the DbContext
@@ -55,7 +52,7 @@ namespace Masticore.Entity
         /// <returns></returns>
         public virtual async Task<ModelType> CreateOrUpdateAsync(ModelType model)
         {
-            ModelType existingModel = await ReadAsync();
+            var existingModel = await ReadAsync();
             if (existingModel == null)
             {
                 existingModel = MergeCrudBase<ModelType, int>.Create(model);
@@ -78,7 +75,7 @@ namespace Masticore.Entity
         /// <returns></returns>
         public virtual async Task DeleteAsync()
         {
-            ModelType existingModel = await ReadAsync();
+            var existingModel = await ReadAsync();
             if (existingModel == null)
                 return;
 
